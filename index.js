@@ -1,20 +1,25 @@
-/*
-var http = require('http');
-http.createServer(function (req, res) {
-  res.writeHead(200, {'Content-Type': 'text/plain'});
-  res.end('Hello World\n');
-}).listen(8080, 'localhost');
-console.log('Server running at http://localhost:8080/');
-*/
+var app = require('express')();
+var server = require('http').Server(app);
+var io = require('socket.io')(server);
+var counter = 0;
 
-var express = require('express');
-var app = express();
-
-app.get('/', function (req, res) {
-  res.send('Hello World!');
-});
-
-app.listen(3000, function () {
+server.listen(3000, function () {
   console.log('Example app listening on port 3000!');
 });
 
+app.get('/', function (req, res) {
+      res.sendfile(__dirname + '/index.html');
+});
+
+io.on('connection', function (socket) {
+    socket.emit('news', { hello: 'world' });
+    socket.on('my other event', function (data) {
+        console.log(data);
+    });
+    socket.on('update_counter', function() {
+        counter++;
+        console.log("counter: " + counter);
+        socket.emit('updated_counter', {counter: counter});
+        socket.broadcast.emit('updated_counter', {counter: counter});
+    });
+});
