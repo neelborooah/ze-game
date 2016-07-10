@@ -82,9 +82,9 @@ io.on('connection', function (socket) {
         var handle = data.handle;
         var game_params = data.params;
         var game_state = [];
-        for(var i=0; i < game_params.cols; i++) {
+        for(var i=0; i < game_params.rows; i++) {
             var row = [];
-            for(var j=0; j < game_params.rows; j++) {
+            for(var j=0; j < game_params.cols; j++) {
                 row.push(-1);
             }
             game_state.push(row);
@@ -96,11 +96,13 @@ io.on('connection', function (socket) {
             name: game_params.cols+"*"+game_params.rows,
             params: game_params,
             users: [handle],
+            scores: {},
             state: game_state,
             remaining_squares: game_params.cols*game_params.rows,
             is_open: false,
             is_complete: false,
         };
+        game.scores[handle] = 0;
         store.games[game_id] = game;
         socket.join(game.room);
         broadcastGameUpdate(game);
@@ -140,6 +142,7 @@ io.on('connection', function (socket) {
             game.users.push(handle);
             if(game.users.length === GAME_CONSTANTS.MIN_USERS) game.is_open = true;
         }
+        game.scores[handle] = 0;
         store.games[game_id] = game;
         socket.join(game.room);
         broadcastGameUpdate(game);
@@ -162,6 +165,7 @@ io.on('connection', function (socket) {
 
         var game = store.games[game_id];
         game.state[row][column] = handle;
+        game.scores[handle]++;
         if(--game.remaining_squares === 0) {
             game.is_complete = true;
             store.games[game_id] = game;

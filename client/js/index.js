@@ -65,9 +65,12 @@ function render() {
 	var htmlString = '';
 	if(store.this_user === null) {
 		htmlString = `
+			<hr />
 			<form id="login-form">
-				<div class="form-group">
+				<div class="col-md-8">
 					<input type="text" id="handle" class="form-control" placeholder="Please enter your handle!"/>
+				</div>
+				<div class="col-md-4">
 					<input type="submit" class="btn btn-success" value="Login" />
 				</div>
 			</form>
@@ -76,18 +79,34 @@ function render() {
 		var rows = store.current_game.params.rows, 
 			cols = store.current_game.params.cols,
 			grid_html = "";
+
+		var score_html = "";
+		for(var key in store.current_game.scores) {
+			score_html += `
+				<div class="col-md-6">
+					${key} : ${store.current_game.scores[key]} 
+					<span class="grid_box_demo" style="background:${store.current_game.colors[key]}"></span>
+				</div>`;
+		}
+
 		for(var i=0;i<rows;i++) {
 			grid_html += "<div class='grid_row'>";
 			for(var j=0;j<cols;j++) {
-				grid_html+= "<a href='#' class='grid_box' data-row="+i+" data-col="+j+">"+
-					((store.current_game.state[i][j] !== -1)?"Taken":"Empty")+"</a>";
+				var is_taken = store.current_game.state[i][j] !== -1
+				grid_html+= "<a href='#' class='grid_box' data-row="+i+" data-col="+j+" style='background:"+
+					((is_taken)?store.current_game.colors[store.current_game.state[i][j]]:"#2f364a")+"'></a>";
 			}
 			grid_html += "</div>";
 		}
 		htmlString = `
 			<div>
-				<p>You are playing ${store.current_game.name} against ${store.current_game.users.length-1} players.<p>
-				<a href="#" data-id=${store.current_game.id} class="leave_game_link btn btn-danger">Leave</a>
+				<p>
+					You are playing ${store.current_game.name} against ${store.current_game.users.length-1} players.
+					<a href="#" data-id=${store.current_game.id} class="leave_game_link btn btn-danger">Leave</a>
+				</p>
+				<div class="scores row">
+					${score_html}
+				</div>
 				<div class="grid">
 					${grid_html}
 				</div>
@@ -109,13 +128,11 @@ function render() {
 		htmlString = `
 			<div>
 				Hi ${store.this_user.handle}, there are ${store.users.length} users online right now!
-			</div>
-			<div>
-				<a href="#" id="logout">Logout</a>
+				<a href="#" id="logout" class="btn btn-danger">Logout</a>
 			</div>
 			<div>${game_rows}</div>
+			<hr />
 			<form id="create-game">
-				<h4>Create Game!</h4>
 				<div class="col-md-4">
 					<input type="number" class="form-control" placeholder="columns" id="cols"/>
 				</div>
@@ -123,7 +140,7 @@ function render() {
 					<input type="number" class="form-control" placeholder="rows" id="rows"/>
 				</div>
 				<div class="col-md-4">
-					<input type="submit" class="btn btn-success" value="Submit" />
+					<input type="submit" class="btn btn-success" value="Create Game!" />
 				</div>
 			</form>
 		`;
@@ -278,9 +295,21 @@ $(document).ready(function(){
 
 	socket.on(SOCKET_EVENTS.INBOUND.UPDATE_GAME, function(data) {
 		console.log(SOCKET_EVENTS.INBOUND.UPDATE, data);
+		if(data !== null) {
+			var colors = randomColor({count: data.users.length});
+			data.colors = {};
+			for(var i=0; i < data.users.length; i++) {
+				data.colors[data.users[i]] = colors[i];
+			}
+		}
 		updateCurrentGame(data);
 		if(data !== null && data.remaining_squares === 0) {
-			alert("Game over!");
+			var max_score = 0;
+			for(var key in data.scores) {
+				max_score = Math.max(data.scores[key], max_score);
+			}
+			var msg = (data.scores[store.this_user.handle] === max_score)?"You won!":"You lost...";
+			alert(msg);
 			updateCurrentGame(null);
 		}
 	});
