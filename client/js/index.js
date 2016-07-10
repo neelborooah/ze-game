@@ -37,6 +37,8 @@ var actions = {
 	UPDATE_CURRENT_GAME: 6,
 };
 
+var DEFAULT_COLOR = "#2f364a";
+
 function updateStore(action) {
 	switch(action.type) {
 		case actions.ADD_USER:
@@ -94,7 +96,7 @@ function render() {
 			for(var j=0;j<cols;j++) {
 				var is_taken = store.current_game.state[i][j] !== -1
 				grid_html+= "<a href='#' class='grid_box' data-row="+i+" data-col="+j+" style='background:"+
-					((is_taken)?store.current_game.colors[store.current_game.state[i][j]]:"#2f364a")+"'></a>";
+					((is_taken)?store.current_game.colors[store.current_game.state[i][j]]:"transparent")+"'></a>";
 			}
 			grid_html += "</div>";
 		}
@@ -262,6 +264,25 @@ $(document).on('click', '.grid_box', function(e) {
 	}
 	socket.emit(SOCKET_EVENTS.OUTBOUND.ACQUIRE_SQUARE, data);
 });
+
+$(document).on({
+    mouseenter: function () {
+		console.log("hover in");
+		var col = parseInt($(this).data("col")),
+			row = parseInt($(this).data("row"));
+		if(store.current_game.state[row][col] === -1) {
+			$(this).css("background", store.current_game.colors[store.this_user.handle]);
+		}
+    },
+    mouseleave: function () {
+		console.log("hover out"); 
+		var col = parseInt($(this).data("col")),
+			row = parseInt($(this).data("row"));
+		if(store.current_game.state[row][col] === -1) {
+			$(this).css("background", "transparent");
+		}
+    }
+}, ".grid_box");
 
 $(document).ready(function(){
 	genericUpdate();
