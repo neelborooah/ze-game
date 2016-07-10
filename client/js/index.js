@@ -8,6 +8,7 @@ var SOCKET_EVENTS = {
         CREATE_GAME: 'create_game',
         LEAVE_GAME: 'leave_game',
         JOIN_GAME: 'join_game',
+        ACQUIRE_SQUARE: 'acquire_square',
     }, 
     INBOUND: {
         NAME_ALREADY_EXISTS: 'name_already_exists',
@@ -72,10 +73,24 @@ function render() {
 			</form>
 		`;
 	} else if(store.current_game !== null) {
+		var rows = store.current_game.params.rows, 
+			cols = store.current_game.params.cols,
+			grid_html = "";
+		for(var i=0;i<rows;i++) {
+			grid_html += "<div class='grid_row'>";
+			for(var j=0;j<cols;j++) {
+				grid_html+= "<a href='#' class='grid_box' data-row="+i+" data-col="+j+">"+
+					((store.current_game.state[i][j] !== -1)?"Taken":"Empty")+"</a>";
+			}
+			grid_html += "</div>";
+		}
 		htmlString = `
 			<div>
 				<p>You are playing ${store.current_game.name} against ${store.current_game.users.length-1} players.<p>
 				<a href="#" data-id=${store.current_game.id} class="leave_game_link btn btn-danger">Leave</a>
+				<div class="grid">
+					${grid_html}
+				</div>
 			</div>
 		`;
 	} else {
@@ -207,7 +222,6 @@ $(document).on('click', '.join_game_link', function(e) {
 
 $(document).on('click', '.leave_game_link', function(e) {
 	e.preventDefault();
-	console.log($(this).data('id'));
 	var game_id = parseInt($(this).data('id'));
 	var data = {
 		handle: store.this_user.handle,
@@ -218,6 +232,19 @@ $(document).on('click', '.leave_game_link', function(e) {
 	updateCurrentGame(null);
 });
 
+$(document).on('click', '.grid_box', function(e) {
+	e.preventDefault();
+	var row = parseInt($(this).data('row'));
+	var col = parseInt($(this).data('col'));
+	var data = {
+		handle: store.this_user.handle,
+		token: store.this_user.token,
+		game_id: store.current_game.id,
+		row: row,
+		col: col,
+	}
+	socket.emit(SOCKET_EVENTS.OUTBOUND.ACQUIRE_SQUARE, data);
+});
 
 $(document).ready(function(){
 	genericUpdate();
@@ -252,5 +279,9 @@ $(document).ready(function(){
 	socket.on(SOCKET_EVENTS.INBOUND.UPDATE_GAME, function(data) {
 		console.log(SOCKET_EVENTS.INBOUND.UPDATE, data);
 		updateCurrentGame(data);
+		if(data !== null && data.remaining_squares === 0) {
+			alert("Game over!");
+			updateCurrentGame(null);
+		}
 	});
 });

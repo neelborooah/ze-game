@@ -21,7 +21,8 @@ var SOCKET_EVENTS = {
         LOGOUT: 'logout',    
         CREATE_GAME: 'create_game',
         LEAVE_GAME: 'leave_game',
-        JOIN_GAME: 'join_game'
+        JOIN_GAME: 'join_game',
+        ACQUIRE_SQUARE: 'acquire_square',
     }, 
     OUTBOUND: {
         NAME_ALREADY_EXISTS: 'name_already_exists',
@@ -90,14 +91,15 @@ io.on('connection', function (socket) {
         }
         game_id++;
         var game = {
+            id: game_id,
             room: game_id,
+            name: game_params.cols+"*"+game_params.rows,
+            params: game_params,
             users: [handle],
             state: game_state,
+            remaining_squares: game_params.cols*game_params.rows,
             is_open: false,
             is_complete: false,
-            params: game_params,
-            name: game_params.cols+"*"+game_params.rows,
-            id: game_id
         };
         store.games[game_id] = game;
         socket.join(game.room);
@@ -143,17 +145,50 @@ io.on('connection', function (socket) {
         broadcastGameUpdate(game);
         broadcastGameList();
     });
+
+    socket.on(SOCKET_EVENTS.INBOUND.ACQUIRE_SQUARE, function(data) {
+        if(!is_authenticated(socket, data)) return;
+
+        var handle = data.handle,
+            game_id = data.game_id, 
+            column = data.col, 
+            row = data.row;
+
+        if(!(game_id in store.games) || store.games[game_id].is_complete || !store.games[game_id].is_open ||
+                store.games[game_id].users.indexOf(handle) === -1 || store.games[game_id].state[row][column] !== -1) {
+            socket.emit(SOCKET_EVENTS.OUTBOUND.INVALID_GAME);
+            return;
+        }
+
+        var game = store.games[game_id];
+        game.state[row][column] = handle;
+        if(--game.remaining_squares === 0) {
+            game.is_complete = true;
+            store.games[game_id] = game;
+            broadcastGameUpdate(game);
+            broadcastGameList();
+        } else {
+            game.is_open = false;
+            broadcastGameUpdate(game);
+            setTimeout(function() {
+                game.is_open = true;
+                store.games[game_id] = game;
+                broadcastGameUpdate(game);
+            }, GAME_CONSTANTS.TIMEOUT);
+        }
+    });
 });
 
 function broadcastGameList() {
-    var game_list = Object.keys(store.games).map(function(key) {
-        if(store.games[key].is_complete) return;
-        return {
+    var game_list = [];
+    for(var key in store.games) {
+        if(store.games[key].is_complete) continue;
+        game_list.push({
             name: store.games[key].name,
             users: store.games[key].users.length,
             id: key
-        }
-    });
+        });
+    }
 
     io.sockets.emit(SOCKET_EVENTS.OUTBOUND.UPDATE_GAME_LIST, game_list);
 }
