@@ -90,7 +90,7 @@ io.on('connection', function (socket) {
         }
         game_id++;
         var game = {
-            room: null,
+            room: game_id,
             users: [handle],
             state: game_state,
             is_open: false,
@@ -99,9 +99,9 @@ io.on('connection', function (socket) {
             name: game_params.cols+"*"+game_params.rows,
             id: game_id
         };
-
         store.games[game_id] = game;
-        socket.emit(SOCKET_EVENTS.OUTBOUND.UPDATE_GAME, game);
+        socket.join(game.room);
+        broadcastGameUpdate(game);
         broadcastGameList();
     });
 
@@ -109,13 +109,17 @@ io.on('connection', function (socket) {
         if(!is_authenticated(socket, data)) return;
         var handle = data.handle, 
             game = store.games[data.game_id];
-        if(game.users.indexOf(handle) !== -1) game.users.splice(game.users.indexOf(handle),1);
-        if(game.users.length === 0) delete store.games[data.game_id]
-        else {
+        if(game.users.indexOf(handle) === -1) return;
+
+        game.users.splice(game.users.indexOf(handle),1);
+        socket.leave(game.room);
+        if(game.users.length === 0) {
+            delete store.games[data.game_id];
+        } else {
             if(game.users.length < 2) game.is_open = false
             store.games[data.game_id] = game;
+            broadcastGameUpdate(game);
         }
-        
         broadcastGameList();
     });
 
@@ -135,7 +139,8 @@ io.on('connection', function (socket) {
             if(game.users.length === GAME_CONSTANTS.MIN_USERS) game.is_open = true;
         }
         store.games[game_id] = game;
-        socket.emit(SOCKET_EVENTS.OUTBOUND.UPDATE_GAME, game);
+        socket.join(game.room);
+        broadcastGameUpdate(game);
         broadcastGameList();
     });
 });
@@ -151,6 +156,10 @@ function broadcastGameList() {
     });
 
     io.sockets.emit(SOCKET_EVENTS.OUTBOUND.UPDATE_GAME_LIST, game_list);
+}
+
+function broadcastGameUpdate(game) {
+    io.to(game.room).emit(SOCKET_EVENTS.OUTBOUND.UPDATE_GAME, game);
 }
 
 function is_authenticated(socket, data) {
