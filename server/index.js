@@ -183,6 +183,7 @@ io.on('connection', function (socket) {
     });
 });
 
+/* Broadcasts all game states to everyone listening */
 function broadcastGameList() {
     var game_list = [];
     for(var key in store.games) {
@@ -197,6 +198,7 @@ function broadcastGameList() {
     io.sockets.emit(SOCKET_EVENTS.OUTBOUND.UPDATE_GAME_LIST, game_list);
 }
 
+/* Broadcasts full game state to everyone subscribed to that room */
 function broadcastGameUpdate(game) {
     io.to(game.room).emit(SOCKET_EVENTS.OUTBOUND.UPDATE_GAME, game);
 }

@@ -1,4 +1,4 @@
-var SERVER = 'http://localhost:3000';
+var SERVER = 'http://backend.neelborooah.com';
 var socket = null;
 
 var SOCKET_EVENTS = {
@@ -39,6 +39,7 @@ var actions = {
 
 var DEFAULT_COLOR = "#2f364a";
 
+/* Reduces that updates the store */
 function updateStore(action) {
 	switch(action.type) {
 		case actions.ADD_USER:
@@ -63,6 +64,8 @@ function updateStore(action) {
 	render();
 }
 
+/* Prints to the DOM 
+	based on the current state of the application */
 function render() {
 	var htmlString = '';
 	if(store.this_user === null) {
@@ -136,10 +139,10 @@ function render() {
 			<hr />
 			<form id="create-game">
 				<div class="col-md-4">
-					<input type="number" class="form-control" placeholder="columns" id="cols"/>
+					<input type="number" class="form-control" min="1" max="10" placeholder="columns" id="cols"/>
 				</div>
 				<div class="col-md-4">
-					<input type="number" class="form-control" placeholder="rows" id="rows"/>
+					<input type="number" class="form-control" min="1" max="10" placeholder="rows" id="rows"/>
 				</div>
 				<div class="col-md-4">
 					<input type="submit" class="btn btn-success" value="Create Game!" />
@@ -192,6 +195,8 @@ function updateCurrentGame(data) {
 }
 
 /* Event Binding | Start Here */
+
+/* Triggering socket events based on user actions */
 
 $(document).on("submit", "#login-form", function(e) {
 	e.preventDefault();
@@ -267,7 +272,6 @@ $(document).on('click', '.grid_box', function(e) {
 
 $(document).on({
     mouseenter: function () {
-		console.log("hover in");
 		var col = parseInt($(this).data("col")),
 			row = parseInt($(this).data("row"));
 		if(store.current_game.state[row][col] === -1) {
@@ -275,7 +279,6 @@ $(document).on({
 		}
     },
     mouseleave: function () {
-		console.log("hover out"); 
 		var col = parseInt($(this).data("col")),
 			row = parseInt($(this).data("row"));
 		if(store.current_game.state[row][col] === -1) {
@@ -289,9 +292,9 @@ $(document).ready(function(){
 	
 	socket = io.connect(SERVER);
 	
+	/* Handling incoming socket events */
 	socket.on(SOCKET_EVENTS.INBOUND.NAME_ALREADY_EXISTS, function(data) {
 		var node = $("#handle");
-		console.log(SOCKET_EVENTS.INBOUND.NAME_ALREADY_EXISTS, data);
 		if(node.length !== 0) {
 			alert("Someone else has already registered with this handle!");
 			node.val("");
@@ -299,23 +302,19 @@ $(document).ready(function(){
 	});
 
 	socket.on(SOCKET_EVENTS.INBOUND.LOGIN_SUCCESS, function(data) {
-		console.log(SOCKET_EVENTS.INBOUND.LOGIN_SUCCESS, data);
 		addUser(data.user);
 		addAllUsers(data.all_users);
 	});
 
 	socket.on(SOCKET_EVENTS.INBOUND.BROADCAST_USERS, function(data) {
-		console.log(SOCKET_EVENTS.INBOUND.BROADCAST_USERS, data);
 		addAllUsers(data);
 	});
 
 	socket.on(SOCKET_EVENTS.INBOUND.UPDATE_GAME_LIST, function(data) {
-		console.log(SOCKET_EVENTS.INBOUND.UPDATE_GAME_LIST, data);
 		updateGamelist(data);
 	});
 
 	socket.on(SOCKET_EVENTS.INBOUND.UPDATE_GAME, function(data) {
-		console.log(SOCKET_EVENTS.INBOUND.UPDATE, data);
 		if(data !== null) {
 			var colors = randomColor({count: data.users.length});
 			data.colors = {};
