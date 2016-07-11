@@ -23,7 +23,7 @@ Technologies used on the server:
 
 Assumptions:
 
-1. Min matrix value for a game is 1*1 and max is 10*10 because we are storing everything in memory right now (LOL).
+1. Min matrix value for a game is 1x1 and max is 10x10 because we are storing everything in memory right now (LOL).
 
 2. We are using browser alerts liberally on the client.
 
