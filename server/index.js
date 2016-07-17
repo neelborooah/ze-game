@@ -59,7 +59,7 @@ io.on('connection', function (socket) {
             handle: handle,
             score: 0,
             token: hash.createHash(handle),    
-            socket: socket,
+            socket_id: socket.id,
         };
         store.users[handle] = result;
         var users = Object.keys(store.users).map(function(user) {
@@ -80,17 +80,17 @@ io.on('connection', function (socket) {
     });
 
     socket.on(SOCKET_EVENTS.INBOUND.DISCONNECT, function() {
-        var user = store.users.filter(function(user) {
-            return user.socket === socket;
-        });
-        if(user.length === 0) return;
-        user = user[0];
+        var handle = Object.keys(store.users).filter(function(handle) {
+            return store.users[handle].socket_id === socket.id;
+        }.bind(this));
+        if(handle.length === 0) return;
+        user = store.users[handle[0]];
         delete store.users[user.handle];
         var users = Object.keys(store.users).map(function(user) {
             return {handle: user, score: store.users[user].score};
         });
         socket.broadcast.emit(SOCKET_EVENTS.OUTBOUND.BROADCAST_USERS, users);
-    });
+    }.bind(this));
 
     socket.on(SOCKET_EVENTS.INBOUND.CREATE_GAME, function(data) {
         if(!is_authenticated(socket, data)) return;
