@@ -23,6 +23,7 @@ var SOCKET_EVENTS = {
         LEAVE_GAME: 'leave_game',
         JOIN_GAME: 'join_game',
         ACQUIRE_SQUARE: 'acquire_square',
+        DISCONNECT: 'disconnect',
     }, 
     OUTBOUND: {
         NAME_ALREADY_EXISTS: 'name_already_exists',
@@ -58,6 +59,7 @@ io.on('connection', function (socket) {
             handle: handle,
             score: 0,
             token: hash.createHash(handle),    
+            socket: socket,
         };
         store.users[handle] = result;
         var users = Object.keys(store.users).map(function(user) {
@@ -75,6 +77,19 @@ io.on('connection', function (socket) {
         });
         socket.broadcast.emit(SOCKET_EVENTS.OUTBOUND.BROADCAST_USERS, users);
         socket.disconnect();
+    });
+
+    socket.on(SOCKET_EVENTS.INBOUND.DISCONNECT, function() {
+        var user = store.users.filter(function(user) {
+            return user.socket === socket;
+        });
+        if(user.length === 0) return;
+        user = user[0];
+        delete store.users[user.handle];
+        var users = Object.keys(store.users).map(function(user) {
+            return {handle: user, score: store.users[user].score};
+        });
+        socket.broadcast.emit(SOCKET_EVENTS.OUTBOUND.BROADCAST_USERS, users);
     });
 
     socket.on(SOCKET_EVENTS.INBOUND.CREATE_GAME, function(data) {
