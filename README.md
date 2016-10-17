@@ -1,7 +1,7 @@
 # ze-game
 Multiplayer game using client-server architecture.
 
-This is a full stack Javascript app using websockets for communication between the client and server (No Restful APIs :P). I have used some ES6 syntax for ease of development and therefore it will not work on all browsers. For a live demo, you can visit http://ze-game.neelborooah.com.
+This is a full stack Javascript app using websockets for communication between the client and server (No Restful APIs :P). I have used some ES6 syntax for ease of development and therefore it will not work on all browsers. 
 
 Technologies used for the client:
 
@@ -11,7 +11,7 @@ Technologies used for the client:
 
 3. RandomColor.js for the wonderful colors in the grid.
 
-4. Bootstrap and JQeury because I am lazy.
+4. Bootstrap and jQuery because I am lazy.
 
 Technologies used on the server:
 
